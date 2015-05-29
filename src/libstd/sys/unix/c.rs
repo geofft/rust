@@ -25,7 +25,8 @@
 #![allow(non_camel_case_types)]
 
 pub use self::signal_os::{sigaction, siginfo, sigset_t, sigaltstack};
-pub use self::signal_os::{SA_ONSTACK, SA_SIGINFO, SIGBUS, SIGSTKSZ, SIG_SETMASK};
+pub use self::signal_os::{SA_ONSTACK, SA_SIGINFO, SA_NODEFER, SA_RESETHAND};
+pub use self::signal_os::{SIGBUS, SIGSTKSZ, SIG_SETMASK};
 
 use libc;
 
@@ -168,8 +169,8 @@ pub unsafe fn sigemptyset(set: *mut sigset_t) -> libc::c_int {
 #[cfg(any(target_os = "linux",
           target_os = "android"))]
 mod signal_os {
-    pub use self::arch::{SA_ONSTACK, SA_SIGINFO, SIGBUS, SIG_SETMASK,
-                         sigaction, sigaltstack};
+    pub use self::arch::{SA_ONSTACK, SA_SIGINFO, SA_NODEFER, SA_RESETHAND,
+                         SIGBUS, SIG_SETMASK, sigaction, sigaltstack};
     use libc;
 
     #[cfg(any(target_arch = "x86",
@@ -226,6 +227,8 @@ mod signal_os {
 
         pub const SA_ONSTACK: libc::c_ulong = 0x08000000;
         pub const SA_SIGINFO: libc::c_ulong = 0x00000004;
+        pub const SA_NODEFER: libc::c_ulong = 0x40000000;
+        pub const SA_RESETHAND: libc::c_ulong = 0x80000000;
 
         pub const SIGBUS: libc::c_int = 7;
 
@@ -275,6 +278,8 @@ mod signal_os {
 
         pub const SA_ONSTACK: libc::c_ulong = 0x08000000;
         pub const SA_SIGINFO: libc::c_ulong = 0x00000008;
+        pub const SA_NODEFER: libc::c_ulong = 0x40000000;
+        pub const SA_RESETHAND: libc::c_ulong = 0x80000000;
 
         pub const SIGBUS: libc::c_int = 10;
 
@@ -328,6 +333,8 @@ mod signal_os {
 
     pub const SA_ONSTACK: libc::c_int = 0x0001;
     pub const SA_SIGINFO: libc::c_int = 0x0040;
+    pub const SA_NODEFER: libc::c_ulong = 0x0010;
+    pub const SA_RESETHAND: libc::c_int = 0x0004;
 
     pub const SIGBUS: libc::c_int = 10;
 

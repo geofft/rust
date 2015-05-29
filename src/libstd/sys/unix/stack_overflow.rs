@@ -44,8 +44,8 @@ mod imp {
     use mem;
     use ptr;
     use intrinsics;
-    use sys::c::{siginfo, sigaction, SIGBUS, SIG_DFL,
-                 SA_SIGINFO, SA_ONSTACK, sigaltstack,
+    use sys::c::{siginfo, sigaction, sigaltstack, SIGBUS,
+                 SA_SIGINFO, SA_ONSTACK, SA_NODEFER, SA_RESETHAND,
                  SIGSTKSZ, sighandler_t, raise};
     use libc;
     use libc::funcs::posix88::mman::{mmap, munmap};
@@ -71,14 +71,6 @@ mod imp {
         // We can not return from a SIGSEGV or SIGBUS signal.
         // See: https://www.gnu.org/software/libc/manual/html_node/Handler-Returns.html
 
-        unsafe fn term(signum: libc::c_int) -> ! {
-            use core::mem::transmute;
-
-            signal(signum, transmute(SIG_DFL));
-            raise(signum);
-            intrinsics::abort();
-        }
-
         // We're calling into functions with stack checks
         stack::record_sp_limit(0);
 
@@ -86,10 +78,10 @@ mod imp {
         let addr = (*info).si_addr as usize;
 
         if guard == 0 || addr < guard - PAGE_SIZE || addr >= guard {
-            term(signum);
+            raise(signum);
+        } else {
+            report_overflow();
         }
-
-        report_overflow();
 
         intrinsics::abort()
     }
@@ -105,7 +97,7 @@ mod imp {
         PAGE_SIZE = psize as usize;
 
         let mut action: sigaction = mem::zeroed();
-        action.sa_flags = SA_SIGINFO | SA_ONSTACK;
+        action.sa_flags = SA_SIGINFO | SA_ONSTACK | SA_NODEFER | SA_RESETHAND;
         action.sa_sigaction = signal_handler as sighandler_t;
         sigaction(SIGSEGV, &action, ptr::null_mut());
         sigaction(SIGBUS, &action, ptr::null_mut());

@@ -8,9 +8,12 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+#![feature(libc)]
+extern crate libc;
 
 use std::process::Command;
 use std::env;
+use libc::consts::os::posix88::SIGSEGV;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -18,7 +21,7 @@ fn main() {
         unsafe { *(0 as *mut isize) = 1 }; // trigger a segfault
     } else {
         let segfault = Command::new(&args[0]).arg("segfault").output().unwrap();
-        assert!(!segfault.status.success());
+        assert!(segfault.status.signal() == Some(SIGSEGV));
         let error = String::from_utf8_lossy(&segfault.stderr);
         assert!(!error.contains("has overflowed its stack"));
     }
